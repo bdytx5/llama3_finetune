@@ -123,32 +123,41 @@ script_args = parser.parse_args_into_dataclasses()[0]
 
 
 def gen_batches_train():
-    ds = load_dataset("tatsu-lab/alpaca", streaming=True, split="train")
-    total_samples = 10000
-    val_pct = 0.1
-    train_limit = int(total_samples * (1 - val_pct))
-    counter = 0
+    ds = load_dataset(script_args.dataset_name, streaming=True, split="train")
+
 
     for sample in iter(ds):
-        # if counter >= train_limit:
-        #     break
-
-        # Extract instruction and input from the sample
-        instruction = sample['instruction']
-        input_text = sample['input']  # Ensure your dataset has 'input'; adjust field name as necessary
 
         # Formatting the prompt as per AlpacaInstructTemplate
-        formatted_prompt = (
-            f"Below is an instruction that describes a task, paired with an input that provides further context. "
-            f"Write a response that appropriately completes the request.\n\n"
-            f"### Instruction:\n{instruction}\n\n### Input:\n{input_text}\n\n### Response:\n"
-        )
+        # "example_1": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>sys prompt<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWho made Berlin<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\ndunno<|eot_id|><|end_of_text|>",
+        # <|begin_of_text|><|start_header_id|>system<|end_header_id|>Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\n\n<|eot_id|><|start_header_id|>user<|end_header_id|>\n\nWho made Berlin<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\ndunno<|eot_id|><|end_of_text|>",
 
-        # Tokenize the formatted prompt
-        # tokenized_output = tokenizer(formatted_prompt)
+        # Extract instruction and input from the sample
+        instruction = str(sample['instruction'])
+        input_text = str(sample['input'])
+        out_text = str(sample['output'])
+        formatted_prompt = None 
+            
+        if input_text is None or input_text == "":
+            formatted_prompt = (
+                f"<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\n"
+                f"Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n{instruction}\n\n### Response:\n"
+                f"<|eot_id|><|start_header_id|>asssitant<|end_header_id|>\n\n",
+                f"{str(out_text)}"
+                f"<|eot_id|><|end_of_text|>"
+            )
+        else:
+            formatted_prompt = (
+                f"<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\n"
+                f"Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n{instruction}\n\n### Input:\n{input_text}\n\n### Response:\n"
+                f"<|eot_id|><|start_header_id|>asssitant<|end_header_id|>\n\n"
+                f"{str(out_text)}"
+                f"<|eot_id|><|end_of_text|>"
+            )
+        
+        formatted_prompt = "".join(formatted_prompt)
         yield {'text': formatted_prompt}
 
-        counter += 1
 
 
 
